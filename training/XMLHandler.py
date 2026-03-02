@@ -32,9 +32,17 @@ class XMLHandler:
 
         self.etaRegion = 0
 
+# miss-match w/ binning file. not name attribute. 
+# Mapping pid to name
+# NOTE: This is a temporary solution. 
+
+        pid_map = {"photon": "22", "photons": "22", "pion": "211", "pions": "211"}
+        particle_pid = pid_map.get(particle_name, particle_name)
+
         found_particle = False
         for particle in root:
-            if particle.attrib["name"] == particle_name:
+            # if particle.attrib["name"] == particle_name:  #THE OLD ONE
+            if particle.attrib["pid"] == particle_pid:
                 found_particle = True
                 for layer in particle:
                     self.ReadPolarCoordinates(layer)
