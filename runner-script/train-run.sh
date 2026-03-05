@@ -15,7 +15,7 @@ module purge
 
 # Run script
 # setting up env variables
-export WORKINGDIR=($pwd)/../../..
+export WORKINGDIR=$(pwd)/../..
 export DATADIR=$WORKINGDIR/BoloGAN-FCC/input/dataset1
 
 
