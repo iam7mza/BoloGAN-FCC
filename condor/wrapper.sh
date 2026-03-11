@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
-cd /afs/cern.ch/work/z/zhangr/FCG/FastCaloChallenge/training
-source /afs/cern.ch/work/z/zhangr/HH4b/hh4bStat/scripts/setup.sh
+# cd /afs/cern.ch/work/z/zhangr/FCG/FastCaloChallenge/training
+
+# Run from BoloGAN-FCC/condor; must keep using relative path to run on different machines
+cd $(pwd)/../training
+
+# TODO: Env setup must be reconfigured for future non-container use
+# source /afs/cern.ch/work/z/zhangr/HH4b/hh4bStat/scripts/setup.sh
 
 echo $@
 
@@ -64,11 +69,11 @@ fi
 
 if [[ ${task} == *'train'* ]]; then
     #command="python train.py -i ${input} -m ${model} -o ../output/dataset${ds}/${version}/${output} -c ../config/config_${config}.json ${train_addition}"
-    command="python train.py -i ${input} -m ${model} -o ../output/dataset${ds}/${version}/${output} -c ../config/config_${config}.json ${train_addition} --max_iter 2000000"
+    command="python3 train.py -i ${input} -m ${model} -o ../output/dataset${ds}/${version}/${output} -c ../config/config_${config}.json ${train_addition} --max_iter 10000"
 else
-    command="python evaluate.py -i ${input} -t ../output/dataset${ds}/${version}/${output} --checkpoint ${evaluate_addition}"
+    command="python3 evaluate.py -i ${input} -t ../output/dataset${ds}/${version}/${output} --checkpoint --debug --save_h5 ${evaluate_addition}"
 fi
 echo $command
-#eval $command
+# eval $command
 cd -
 unset mask prep config config_mask model train_addition evaluate_addition loading label_scheme ds

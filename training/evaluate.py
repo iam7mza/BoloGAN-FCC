@@ -400,7 +400,7 @@ def best_ckpt(args, df, cache=False, alt='', mask_cache=False):
         models = glob.glob(os.path.join(args.train_path, f'{particle}s_eta_{args.eta_slice}{suffix}', 'checkpoints', f'model-{int(best_df["ckpt"])}*'))
         for model in models:
             os.system(f'cp {model} {best_folder}')  
-        plot_name = os.path.join(args.train_path, f'{particle}s_eta_{args.eta_slice}{suffix}', os.path.splitext(os.path.basename(__file__))[0], f'plot_{particle}_{args.eta_slice}_{int(best_df["ckpt"])}.pdf')
+        plot_name = os.path.join(args.train_path, f'{particle}s_eta_{args.eta_slice}{suffix}', os.path.splitext(os.path.basename(__file__))[0], f'plot_{particle}_{args.eta_slice}_{int(best_df["ckpt"])}.png')
         os.system(f'cp {plot_name} {best_folder}')  
 
     vox_name = os.path.join(best_folder, 'mask', f'mask_{particle}_{args.eta_slice}_{int(best_df["ckpt"])}_all.pdf')
