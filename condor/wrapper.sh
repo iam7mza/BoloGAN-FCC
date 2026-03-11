@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# cd /afs/cern.ch/work/z/zhangr/FCG/FastCaloChallenge/training
-
 # Run from BoloGAN-FCC/condor; must keep using relative path to run on different machines
-cd $(pwd)/../training
+cd $(dirname ${BASH_SOURCE[0]})/../training
 
-# TODO: Env setup must be reconfigured for future non-container use
-# source /afs/cern.ch/work/z/zhangr/HH4b/hh4bStat/scripts/setup.sh
+# ENV SETUP; NOTE: To be ran on INFN machines; Also, LCG_105a_cuda is a temporary choice.. TODO: Update
+source /cvmfs/sft.cern.ch/lcg/views/LCG_105a_cuda/x86_64-el9-gcc11-opt/setup.sh
+# installing quickstats b.c. it's missing from LCG_105a_cuda
+pip install quickstats --break-system-packages
 
 echo $@
 
@@ -69,11 +69,11 @@ fi
 
 if [[ ${task} == *'train'* ]]; then
     #command="python train.py -i ${input} -m ${model} -o ../output/dataset${ds}/${version}/${output} -c ../config/config_${config}.json ${train_addition}"
-    command="python3 train.py -i ${input} -m ${model} -o ../output/dataset${ds}/${version}/${output} -c ../config/config_${config}.json ${train_addition} --max_iter 10000"
+    command="python3 train.py -i ${input} -m ${model} -o ../output/dataset${ds}/${version}/${output} -c ../config/config_${config}.json ${train_addition} --max_iter 1000000"
 else
     command="python3 evaluate.py -i ${input} -t ../output/dataset${ds}/${version}/${output} --checkpoint --debug --save_h5 ${evaluate_addition}"
 fi
 echo $command
-# eval $command
+eval $command
 cd -
 unset mask prep config config_mask model train_addition evaluate_addition loading label_scheme ds
