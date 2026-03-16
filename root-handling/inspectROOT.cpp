@@ -6,21 +6,13 @@
 // 3 - event (optional)
 
 
+// including functions from rootFunction.h
+#include "rootFunction.h"
+
 void inspectROOT(const char* particle = "e", int energy = 10, int eventToShow = 0) {
 	
-	// dir: NOTE this is meant to run on INFN clusters.. and the directory must be changed otherwise
-	std::string dir;
-	std::string ptype = particle;
-	if (ptype == "e"){dir = "/storage-hpc/bologan/IDEA-data/emlinearity/";}
-	else if (ptype == "pi"){dir = "/storage-hpc/bologan/IDEA-data/pilinearity/";} 
-	else {std::cerr << "ERROR: unknow particle type '" << ptype << "'. Use 'e' for electron or 'pi' for pion.\n";
-		return;}
-	
-	std::cout <<"\ndir = " << dir<<'\n';
-	
-	// filename
-	std::string filename = dir + "IDEA_o2_v01_phi0p5_theta0p5_" + std::to_string(energy) + "gev.root";
 
+	std::string filename = getROOTFilePath(particle, energy);
 	std::cout << "Opening: " << filename << "\n";
 	
 	// opening file
