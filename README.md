@@ -1,6 +1,8 @@
 This is a fork of BoloGAN -- branch `CaloChalenge` (including the typo) 
 https://gitlab.cern.ch/zhangruiPhysics/FastCaloChallenge/-/tree/CaloChalenge?ref_type=heads
 
+
+\[INSTRUCTIONS OUTDATED.. SEE `/runner-scripts`\]
 ```
 cd training
 ```
