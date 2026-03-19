@@ -1,6 +1,12 @@
 // functions to handle root files because ROOT has horrible documentation
 // NOTE TO SELF: only open .root files in READ mode!!
 
+#include <string>
+#include <vector>
+#include <iostream>
+#include <TTree.h>
+#include <TBranch.h>
+#include <TObjArray.h>
 
 std::string getROOTFilePath(const char* particle, int energy) {
     /*
@@ -37,6 +43,9 @@ std::vector<std::string> getBranchNames(TTree* tree) {
     - tree: a pointer to the TTree from which to extract branch names.
     Returns:
     - A vector of strings, each containing the name of a branch in the TTree.
+
+    WANRING: ram handeling; this function loads all the dataset into a single vector.. if the dataset is too large, it might cause memory issues. 
+    TODO: split the loading into batches (Depending on available memory).
     */
     std::vector<std::string> branchNames;
     TObjArray* branches = tree->GetListOfBranches();
@@ -47,34 +56,46 @@ std::vector<std::string> getBranchNames(TTree* tree) {
     return branchNames;
 }
 
-// Extract Calorimeter hits (Careful the types) 
-
-
-// some assumptions!! NOTW: please verify
-// energy deposite in calorimeter is assumed to be stored in SCEPCal_MainEdep
-// type vector<edm4hep::SimCalorimeterHitData>
-
-// NOTE: this is the template for extracting data from branches
-std::vector<edm4hep::SimCalorimeterHitData> getCalorimeterHits(TTree* tree, int entry) {
+// Extracting content from a branch.
+template<typename T>
+std::vector<T> getBranchContent(TTree* tree, const std::string& branchName, int entry = -1) {
     /*
-    Extracts calorimeter hit data from a specified entry in a TTree.
+    Extracts content from a specified branch in a TTree for a given entry or all entries
     Parameters:
-    - tree: a pointer to the TTree containing the calorimeter hit data.
-    - entry: the entry number from which to extract the data.
+    - tree: a pointer to the TTree containing the branch
+    - branchName: the name of the branch from which to extract data
+    - entry: the entry number to extract (default -1 for all entries)
     Returns:
-    - A vector of edm4hep::SimCalorimeterHitData objects representing the calorimeter hits for the specified entry.
-    Note: Energy deposite is in hits.energy
-    */
-    std::vector<edm4hep::SimCalorimeterHitData> hits;
-    std::vector<edm4hep::SimCalorimeterHitData>* hitPtr = nullptr; // code breaks if I try to directly set branch address to hits
-    tree->SetBranchAddress("SCEPCal_MainEdep", &hitPtr);
-    tree->GetEntry(entry);
-    if (hitPtr) {
-        hits = *hitPtr; // copy data to return vector
-    }
-    return hits;    
+    - A vector of type T containing the data from the specified branch and entry/entries.
+    Note: if getting a single entry, the returned value is still a vector and therefore data must be extracted with `result[0]`
+    IMPORTANT: type must be specified before calling the function eg `getBranchContent<std::vector<edm4hep::SimCalorimeterHitData>>(t, "SCEPCal_MainEdep", 4999);`
 
-    // note this is very inefficient as it gets only one entry at a time. 
-    // the main motivation behind this one is to get familiar with the process of extracting data from branches.
-    // TODO: optimize
+    Accessing the data: 
+    1- A given entry can be accessed with `result[nEntry]` as the return is a vector (note: for one entry nEntry is 0)
+    2- A sigle event/entry might consist of multiple hits. To access indivisual hits, a for loop over the results[nEntry] is needed. eg `for(const auto* hit : results[nEntry]) {...}`
+    3- A given hit might have multiple subfield. eg: `hit.energy`, `hit.position.x` .. etc
+    */
+
+    T* dataPtr = nullptr;
+    tree->SetBranchAddress(branchName.c_str(), &dataPtr); 
+    int nEntries = tree->GetEntries();
+
+    if (entry >= nEntries) {
+        std::cerr << "ERROR: could not get entry " << entry << ". Entry number must not exceed " << nEntries - 1 << ".\n";
+        return {};
+    }
+
+    if (entry >= 0) {
+        tree->GetEntry(entry);
+        if (dataPtr) return {*dataPtr};
+        return {};  // explicit return, no fall-through
+    }
+
+    // entry == -1: all entries
+    std::vector<T> all;
+    for (int i = 0; i < nEntries; ++i) {
+        tree->GetEntry(i);
+        if (dataPtr) all.push_back(*dataPtr);
+    }
+    return all;
 }
