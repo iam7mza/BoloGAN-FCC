@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     
     std::cout << "[INFO] Extracting data and writing to CSV file: " << csvFileName << std::endl;
     // Extraction
-    csvFile << "Event,Hit,Energy,PosX,PosY,PosZ,cellID \n";
+    csvFile << "Event,Hit,Energy,PosX,PosY,PosZ,cellID\n";
     for (int i = 0; i < hits.size(); ++i) { // i is the event number
         for (int j = 0; j < hits[i].size(); ++j) { // j is the hit number in event i
             const auto& hit = hits[i][j];
