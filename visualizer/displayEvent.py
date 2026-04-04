@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import pandas as pd
 
 
-def draw_box(fig, x_range, y_range, z_range, color='deepskyblue', lw=1.5, alpha=0.7):
+def draw_box(fig, x_range, y_range, z_range, name, color='deepskyblue', lw=1.5, alpha=0.7):
     """Draw the 12 edges of an axis-aligned bounding box."""
     xmin, xmax = x_range
     ymin, ymax = y_range
@@ -37,7 +37,8 @@ def draw_box(fig, x_range, y_range, z_range, color='deepskyblue', lw=1.5, alpha=
         line=dict(color=color, width=lw),
         opacity=alpha,
         showlegend=False,
-        hoverinfo='skip',
+        name=name,
+        hoverinfo='name'
     ))
 
 
@@ -59,7 +60,7 @@ def _style_fig(fig, event, ptype, energy, global_vmin, global_vmax):
         ),
         title=dict(
             text=f"{ptype.capitalize()}  {energy}  |  event {event}<br>"
-                 f"<sup>Hit energy  {global_vmin*1000:.3f} – {global_vmax*1000:.3f} MeV  (marker size ∝ energy)</sup>",
+                 f"<sup>Hit energy  {global_vmin*1000:.3f} – {global_vmax*1000:.3f} MeV  (marker size ∝ logE)</sup>",
             font=dict(color='white', size=13),
             x=0.01,
         ),
@@ -155,16 +156,15 @@ def drawMCTracks(fig, mc_df, min_track_length=10.0):
 
 
 BRANCH_STYLE = {
-        'SCEPCal_MainScounts': {'color': 'yellow',       'label': 'SCEPCal Scounts'},
-        'SCEPCal_MainCcounts': {'color': 'purple',       'label': 'SCEPCal Ccounts'},
-        'DRBTCher':         {'color': 'deepskyblue',  'label': 'DRBTCher'},
-        'DRBTScin':         {'color': 'cyan',         'label': 'DRBTScin'},
-        'DRETCherLeft':     {'color': 'lime',         'label': 'DRETCher Left'},
-        'DRETCherRight':    {'color': 'lime',         'label': 'DRETCher Right'},
-        'DRETScinLeft':     {'color': 'magenta',      'label': 'DRETScin Left'},
-        'DRETScinRight':    {'color': 'magenta',      'label': 'DRETScin Right'},
+        'SCEPCal_MainScounts': {'color': '#1677DE',       'label': 'SCEPCal Scounts'},
+        'SCEPCal_MainCcounts': {'color': '#0095b6',       'label': 'SCEPCal Ccounts'},
+        'DRBTCher':         {'color': '#DA4167',  'label': 'DRBTCher'},
+        'DRBTScin':         {'color': '#E0BAD7',         'label': 'DRBTScin'},
+        'DRETCherLeft':     {'color': '#F78764',         'label': 'DRETCher Left'},
+        'DRETCherRight':    {'color': '#F78764',         'label': 'DRETCher Right'},
+        'DRETScinLeft':     {'color': '#61D095',      'label': 'DRETScin Left'},
+        'DRETScinRight':    {'color': '#61D095',      'label': 'DRETScin Right'},
     }
-
 
 # CALEBRATION FACTORS p.e./GeV
 # BARREL
@@ -176,15 +176,6 @@ CALIBRATION_BARREL_Chi = 0.31
 CALIBRATION_CRYSTAL_S = 1960.92
 CALIBRATION_CRYSTAL_C = 97.531
 CALIBRATION_CRYSTAL_Chi = 0.41
-
-# def calibrateEnergy(df):
-#     df['DRBT_S_GeV'] = (df['DRBTScin'] + df['DRETScinLeft'] + df['DRETScinRight']) / CALIBRATION_BARREL_S
-#     df['DRBT_C_GeV'] = (df['DRBTCher'] + df['DRETCherLeft'] + df['DRETCherRight']) / CALIBRATION_BARREL_C
-#     df['Crystal_S_GeV'] = df['SCEPCal_MainScounts'] / CALIBRATION_CRYSTAL_S
-#     df['Crystal_C_GeV'] = df['SCEPCal_MainCcounts'] / CALIBRATION_CRYSTAL_C
-#     df['E_Barrel']   = (df['DRBT_S_GeV']   - CALIBRATION_BARREL_Chi   * df['DRBT_C_GeV'])   / (1 - CALIBRATION_BARREL_Chi)
-#     df['E_Crystal'] = (df['Crystal_S_GeV'] - CALIBRATION_CRYSTAL_Chi * df['Crystal_C_GeV']) / (1 - CALIBRATION_CRYSTAL_Chi)
-#     df['E_Total']   = df['E_Barrel'] + df['E_Crystal']
 
 def calibrateEnergy(df, branch):
     df.rename(columns={'Energy': 'nPE'}, inplace=True)
@@ -208,36 +199,43 @@ if __name__ == "__main__":
         'x_range': (-3459.98, 4567.76),
         'y_range': (-4001.93, 4240.6),
         'z_range': (-2957.57, 3114.86),
+        'name': 'DRBTCher',
     }
     DRETCherLeft_BOUNDS = {
         'x_range': (-2730.2, 2761.94),
         'y_range': (-2663.14, 2730.5),
         'z_range': (-4074.94, -2800.38),
+        'name': 'DRETCherLeft',
     }
     DRETCherRight_BOUNDS = {
         'x_range': (-2723.6, 2763.38),
         'y_range': (-2690.14, 2751.99),
         'z_range': (2800.46, 3969.27),
+        'name': 'DRETCherRight',
     }
     DRBTScin_BOUNDS = {
         'x_range': (-3920.43, 4546.71),
         'y_range': (-4303.39, 4336.3),
         'z_range': (-3308.44, 3652.22),
+        'name': 'DRBTScin',
     }
     DRETScinLeft_BOUNDS = {
         'x_range': (-2750.78, 2971.34),
         'y_range': (-2960.51, 3173.94),
         'z_range': (-3847.83, -2800.19),
+        'name': 'DRETScinLeft',
     }
     DRETScinRight_BOUNDS = {
         'x_range': (-2766.79, 2971.24),
         'y_range': (-2810.08, 2831.46),
         'z_range': (2800.19, 4088.43),
+        'name': 'DRETScinRight',
     }
     SCEPCal_BOUNDS = {
         'x_range': (-2375.0, 2375.0),
         'y_range': (-2375.0, 2375.0),
         'z_range': (-2571.92, 2571.92),
+        'name': 'SCEPCal',
     }
 
 
@@ -265,10 +263,8 @@ if __name__ == "__main__":
     PATH = "/home/hamza/Workspace/Data/csv/"
     PTYPE = "pion"
     ENERGY = "10GeV"
-    # Good events to show: 3741
-    # EVENT = np.random.randint(0, 5000)
-    EVENT = 3741
-    SIZE_SCALE = 50 
+    EVENT = np.random.randint(0, 5000)
+    SIZE_SCALE = 30 
     print(f"[INFO] Loading event {EVENT}...")
 
 
@@ -327,11 +323,3 @@ if __name__ == "__main__":
     fig.show()   # also opens in browser directly
 
 
-    # NOTE: SCEPCal S and C count; I DO NOT KNOW HOW TO DEAL WITH THEM!! left them out for now.
-    # TODO:
-    # Compute total/Calibrated energy deposit
-    # Include MC truth info
-    # Use better colors; especially DRBT: I cant tell the difference between Cherenkov and Scintillator hits.
-    # Add event info the title (energy, particle type, etc.)
-    # include argparse: p-type, energy, event.
-    # Add electron support (currently only pions)
