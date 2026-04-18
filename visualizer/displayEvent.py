@@ -41,6 +41,104 @@ def draw_box(fig, x_range, y_range, z_range, name, color='deepskyblue', lw=1.5, 
         hoverinfo='name'
     ))
 
+def draw_cylinder(fig, r_inner, r_outer, z_min, z_max, name, color='deepskyblue',n_connections = 6, lw=2.5, alpha=0.5, n=64):
+    theta = np.linspace(0, 2 * np.pi, n + 1)
+    cos_t, sin_t = np.cos(theta), np.sin(theta)
+
+    def ring_trace(r, z_val):
+        return r * cos_t, r * sin_t, np.full_like(cos_t, z_val)
+
+    # Outer rings at z_min and z_max
+    for z in [z_min, z_max]:
+        x, y, z_ = ring_trace(r_outer, z)
+        fig.add_trace(go.Scatter3d(
+            x=x, y=y, z=z_,
+            mode='lines',
+            line=dict(color=color, width=lw),
+            opacity=alpha,
+            showlegend=False,
+            name=name,
+            hoverinfo='name'
+        ))
+
+    # Inner rings at z_min and z_max (if hollow)
+    if r_inner > 0:
+        for z in [z_min, z_max]:
+            x, y, z_ = ring_trace(r_inner, z)
+            fig.add_trace(go.Scatter3d(
+                x=x, y=y, z=z_,
+                mode='lines',
+                line=dict(color=color, width=lw),
+                opacity=alpha,
+                showlegend=False,
+                name=name,
+                hoverinfo='name'
+            ))
+
+    for angle in np.linspace(0, 2*np.pi, n_connections + 1)[:-1]:
+        cx, cy = r_outer * np.cos(angle), r_outer * np.sin(angle)
+        fig.add_trace(go.Scatter3d(
+            x=[cx, cx], y=[cy, cy], z=[z_min, z_max],
+            mode='lines',
+            line=dict(color=color, width=lw * 0.5),
+            opacity=alpha * 0.5,
+            showlegend=False,
+            name=name,
+            hoverinfo='name'
+        ))
+
+def draw_coordinate_axes(fig, origin=(-4000, -4000, -3500), length=800):
+    """
+    Draw R, eta (z-axis proxy), and phi coordinate indicators.
+    - R:   radial direction (along x, representative)
+    - phi: azimuthal direction (along y, tangential)
+    - eta: beam axis (along z)
+    """
+
+    ox, oy, oz = origin
+
+    axes = [
+        # (label, dx, dy, dz, color)
+        ('R',   length, 0,      0,      '#FF6B6B'),  # red    — radial
+        ('φ',   0,      length, 0,      '#6BCB77'),  # green  — azimuthal
+        ('η',   0,      0,      length, '#4D96FF'),  # blue   — beam axis
+    ]
+
+    for label, dx, dy, dz, color in axes:
+        ex, ey, ez = ox + dx, oy + dy, oz + dz
+
+        # Axis line
+        fig.add_trace(go.Scatter3d(
+            x=[ox, ex], y=[oy, ey], z=[oz, ez],
+            mode='lines',
+            line=dict(color=color, width=4),
+            showlegend=False,
+            hoverinfo='skip',
+        ))
+
+        # Arrowhead (cone)
+        fig.add_trace(go.Cone(
+            x=[ex], y=[ey], z=[ez],
+            u=[dx * 0.001], v=[dy * 0.001], w=[dz * 0.001],
+            colorscale=[[0, color], [1, color]],
+            showscale=False,
+            sizemode='absolute',
+            sizeref=120,
+            anchor='tip',
+            hoverinfo='skip',
+            showlegend=False,
+        ))
+
+        # Label — offset slightly beyond the tip
+        offset = 1.18
+        fig.add_trace(go.Scatter3d(
+            x=[ox + dx * offset], y=[oy + dy * offset], z=[oz + dz * offset],
+            mode='text',
+            text=[label],
+            textfont=dict(color=color, size=16),
+            showlegend=False,
+            hoverinfo='skip',
+        ))
 
 def _style_fig(fig, event, ptype, energy, global_vmin, global_vmax):
     """Black background, no axes, no grid."""
@@ -241,13 +339,22 @@ if __name__ == "__main__":
 
     fig = go.Figure()
 
-    draw_box(fig, **DRBTCher_BOUNDS,      color='deepskyblue', lw=1.5, alpha=0.7)
-    draw_box(fig, **DRETCherLeft_BOUNDS,  color='lime',        lw=1.5, alpha=0.7)
-    draw_box(fig, **DRETCherRight_BOUNDS, color='lime',        lw=1.5, alpha=0.7)
-    draw_box(fig, **DRBTScin_BOUNDS,      color='cyan',        lw=1.5, alpha=0.7)
-    draw_box(fig, **DRETScinLeft_BOUNDS,  color='magenta',     lw=1.5, alpha=0.7)
-    draw_box(fig, **DRETScinRight_BOUNDS, color='magenta',     lw=1.5, alpha=0.7)
-    draw_box(fig, **SCEPCal_BOUNDS,       color='yellow',      lw=1.5, alpha=0.7)
+    # draw_box(fig, **DRBTCher_BOUNDS,      color='deepskyblue', lw=1.5, alpha=0.7)
+    # draw_box(fig, **DRETCherLeft_BOUNDS,  color='lime',        lw=1.5, alpha=0.7)
+    # draw_box(fig, **DRETCherRight_BOUNDS, color='lime',        lw=1.5, alpha=0.7)
+    # draw_box(fig, **DRBTScin_BOUNDS,      color='cyan',        lw=1.5, alpha=0.7)
+    # draw_box(fig, **DRETScinLeft_BOUNDS,  color='magenta',     lw=1.5, alpha=0.7)
+    # draw_box(fig, **DRETScinRight_BOUNDS, color='magenta',     lw=1.5, alpha=0.7)
+    # draw_box(fig, **SCEPCal_BOUNDS,       color='yellow',      lw=1.5, alpha=0.7)
+
+
+    draw_cylinder(fig, r_inner=0,      r_outer=2375,  z_min=-2571.92, z_max=2571.92, name='SCEPCal',       color='yellow')
+    draw_cylinder(fig, r_inner=0,   r_outer=4570,  z_min=-2957.57, z_max=3114.86, name='DRBTCher',      color='deepskyblue')
+    draw_cylinder(fig, r_inner=0,   r_outer=4547,  z_min=-3308.44, z_max=3652.22, name='DRBTScin',      color='cyan')
+    draw_cylinder(fig, r_inner=0,      r_outer=2762,  z_min=-4074.94, z_max=-2800.38, name='DRETCherLeft', color='lime')
+    draw_cylinder(fig, r_inner=0,      r_outer=2763,  z_min=2800.46,  z_max=3969.27,  name='DRETCherRight',color='lime')
+    draw_cylinder(fig, r_inner=0,      r_outer=2971,  z_min=-3847.83, z_max=-2800.19, name='DRETScinLeft', color='magenta')
+    draw_cylinder(fig, r_inner=0,      r_outer=2971,  z_min=2800.19,  z_max=4088.43,  name='DRETScinRight',color='magenta')
 
     # Beam line
     z_min, z_max = -4074.94, 4088.43
@@ -311,6 +418,8 @@ if __name__ == "__main__":
     print(f"[INFO] MC particles: {len(mc_ev)}")
 
     seen_pdgs = drawMCTracks(fig, mc_ev, min_track_length=10.0)
+
+    draw_coordinate_axes(fig, origin=(0, 0, -3800), length=700)
 
     # Style + title
     _style_fig(fig, EVENT, PTYPE, ENERGY, global_vmin, global_vmax)
