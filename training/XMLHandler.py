@@ -36,7 +36,7 @@ class XMLHandler:
 # Mapping pid to name
 # NOTE: This is a temporary solution. 
 
-        pid_map = {"photon": "22", "photons": "22", "pion": "211", "pions": "211"}
+        pid_map = {"photon": "22", "photons": "22", "pion": "211", "pions": "211", "electrons": "11","electron": "11"}
         particle_pid = pid_map.get(particle_name, particle_name)
 
         found_particle = False
