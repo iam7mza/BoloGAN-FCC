@@ -34,9 +34,12 @@ def particle_mass(particle=None):
         mass = 139.6
     elif 'proton' in particle or particle == 2212:
         mass = 938.27
+    else:
+        raise NotImplementedError(f'{particle} is not implemented in common.py')
+    #TODO: include the possibility of reading mass from input json file
     return mass
 
-def kin_to_label(kin, scheme='log_ratio'):
+def kin_to_label(kin, scheme='log_ratio'): # NOTE: Heavely CaloCallenege specific
     kin_min = np.min(kin)
     kin_max = np.max(kin)
     if scheme == 'log_ratio':
@@ -94,20 +97,19 @@ def get_energies(input_file, label=False):
     energies = input_file['incident_energies'][:]
     if np.all(np.mod(energies, 1) == 0):
         energies = energies.astype(int)
-    else:
+    else: # this part is what causes error in training electrons... it expects a different format
         if label == True: # when energies are not integral (dataset 2&3 in calochallenge, return digitised labels
             return np.log2(energies).astype(int)
     return energies
 
-def get_kin(input_file, label = False):
-    particle = input_file.split('/')[-1].split('_')[-2][:-1]
+def get_kin(input_file, particle, label = False):
     input_file = h5py.File(f'{input_file}', 'r')
     mass = particle_mass(particle)
     energies = input_file['incident_energies'][:]
     kin = np.sqrt( np.square(energies) + np.square(mass) ) - mass
     if label == True: # when energies are not integral (dataset 2&3 in calochallenge, return digitised labels
         return np.log2(energies).astype(int)
-    return kin, particle
+    return kin
 
 def plot_frame(categories, xlabel, ylabel, label_pos='left', add_summary_panel=True):
     if len(categories) == 1:

@@ -226,6 +226,7 @@ def filter_energy(particle, incident_energies, split_energy_position, X_train):
     if split_energy_position == '' or split_energy_position is None:
         return X_train
 
+    # NOTE: only applies to photons for some reason.. check later
     if 'photon' in particle:
         if split_energy_position == 'le12':
             positions = (-1, np.power(2,12))

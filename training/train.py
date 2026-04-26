@@ -1,8 +1,8 @@
 # use code from https://github.com/CaloChallenge/homepage/blob/main/code/HighLevelFeatures.ipynb
-from argparse import ArgumentParser
+import argparse
 from HighLevelFeatures import HighLevelFeatures
 import numpy as np
-import h5py, os, json
+import h5py, os, json, sys
 import matplotlib.pyplot as plt
 from model import WGANGP
 from pdb import set_trace
@@ -94,16 +94,16 @@ def apply_mask(mask, X_train, input_file, add_noise=False):
 def main(args):
     # creating instance of HighLevelFeatures class to handle geometry based on binning file
     input_file = args.input_file
-    particle = input_file.split('/')[-1].split('_')[-2][:-1]
+    particle = args.particle
     #hlf = HighLevelFeatures(particle, filename=f'{os.path.dirname(input_file)}/binning_dataset_1_{particle}s.xml')
     print('\033[92m[INFO] Run\033[0m', particle, input_file)
     
-    # loading the .hdf5 datasets
+    # loading the .hdf5 datasets #SO FAR SO GOOD
     input_data = h5py.File(f'{input_file}', 'r')
     
     energies = get_energies(input_file)
-    kin, particle = get_kin(input_file)
-    kin = filter_energy(particle, input_data['incident_energies'][:], args.split_energy_position, kin)
+    kin = get_kin(input_file, particle=particle)
+    kin = filter_energy(particle, input_data['incident_energies'][:], args.split_energy_position, kin) # NOTE: so far for pions and electrons this does nothing
     if args.label_scheme:
         label_scheme = args.label_scheme
     else:
@@ -131,7 +131,12 @@ def main(args):
             X_train, scale = preprocessing(X_train, kin, name=args.preprocess, input_file=input_file)
         elif args.preprocess in ['concatlayer', 'normlayer1', 'normlayer2', 'normlayer3', 'normlayerMichele', 'normlayerMichele2']:
             from XMLHandler import XMLHandler
-            xml = XMLHandler(particle, filename=f'{os.path.dirname(input_file)}/binning_dataset_1_{particle}s.xml')
+            try:
+                xmlPath = args.binning_file
+            except:
+                raise ValueError(f'[ERROR] Binning file is required for this preprocessing method {args.preprocess}. Please provide it in the input json file with key "binning_file"')
+        
+            xml = XMLHandler(particle, filename=xmlPath)
             shower_shape = X_train.shape
             X_train = preprocessing(X_train, kin, name=args.preprocess, input_file=input_file, xml=xml)
             scale = None
@@ -162,7 +167,8 @@ def main(args):
             'use_bias': True,
             'label_scheme': label_scheme,
         }
-    elif 'pion' in particle: # pion
+        # TODO: config should be part of the input file json
+    elif 'pion' in particle or 'electron' in particle: # pion or electron
         hp_config = {
             'model': args.model if args.model else 'noBN',
             'G_size': 1,
@@ -184,35 +190,35 @@ def main(args):
             'preprocess': args.preprocess,
             'label_scheme': label_scheme,
         }
-    elif 'electron': # dataset2 electron
-        hp_config = {
-            'model': args.model if args.model else 'BNswish',
-            'G_size': 1,
-            'D_size': 1,
-            'optimizer': 'adam',
-            'G_lr': 1E-4,
-            'D_lr': 1E-4,
-            'G_beta1': 0.5,
-            'D_beta1': 0.5,
-            'batchsize': 1024,
-            'datasize': X_train.shape[0],
-            'dgratio': 8,
-            'latent_dim': 50,
-            'lam': 3,
-            'conditional_dim': label_kin.shape[1],
-            'generatorLayers': [200, 400, 800],
-            'discriminatorLayers': [800, 400, 200],
-            'nvoxels': X_train.shape[1],
-            'use_bias': True,
-            'label_scheme': label_scheme,
-        }
+    # elif 'electron' in particle: # dataset2 electron
+    #     hp_config = {
+    #         'model': args.model if args.model else 'BNswish',
+    #         'G_size': 1,
+    #         'D_size': 1,
+    #         'optimizer': 'adam',
+    #         'G_lr': 1E-4,
+    #         'D_lr': 1E-4,
+    #         'G_beta1': 0.5,
+    #         'D_beta1': 0.5,
+    #         'batchsize': 1024,
+    #         'datasize': X_train.shape[0],
+    #         'dgratio': 8,
+    #         'latent_dim': 50,
+    #         'lam': 3,
+    #         'conditional_dim': label_kin.shape[1],
+    #         'generatorLayers': [200, 400, 800],
+    #         'discriminatorLayers': [800, 400, 200],
+    #         'nvoxels': X_train.shape[1],
+    #         'use_bias': True,
+    #         'label_scheme': label_scheme,
+    #     }
     if args.config:
         from quickstats.utils.common_utils import combine_dict
         hp_config = combine_dict(hp_config, json.load(open(args.config, 'r')))
 
     job_config = {
         'particle': particle+'s',
-        'eta_slice': '20_25',
+        'eta_slice': '20_25', #NOTE: why is eta slice hard coded????????!!!!!!
         'checkpoint_interval': 1000 if not args.debug else 10,
         'output': args.output_path,
         'max_iter': 4E5 if args.loading else args.max_iter,
@@ -236,7 +242,8 @@ def main(args):
     wgan.train(X_train, label_kin)
 
 def plot_input(args, X_train, output):
-    kin, particle = get_kin(args.input_file)
+    particle = args.particle
+    kin = get_kin(args.input_file, particle=particle)
     input_data = h5py.File(f'{args.input_file}', 'r')
     kin = filter_energy(particle, input_data['incident_energies'][:], args.split_energy_position, kin)
     categories, xtrain_list = split_energy(kin, X_train)
@@ -245,22 +252,61 @@ def plot_input(args, X_train, output):
             particle=particle, output=out_file, draw_ref=False, xlabel='Energy of voxel as training input [MeV]')
     print('\033[92m[INFO] Save to\033[0m', out_file)
 
+
+DEFAULT_CONFIG = {
+    "dataset": {
+        "input_file": "",                  # -i
+        "split_energy_position": "",       # choices: '', 'le12', 'ge12', 'ge12le18', 'ge18'
+    },
+    "preprocessing": {
+        "preprocess": None,                      # -p
+        "mask": None,                      # in keV, negative = per-energy scaling
+        "add_noise": False,
+        "label_scheme": "log_ratio",       # see common.py
+    },
+    "training": {
+        "output_path": "../output/dataset1/v1",  # -o
+        "model": None,                     # -m
+        "max_iter": 1_000_000,
+        "loading": None,                   # -l, path to checkpoint to resume from
+        "debug": False,                    # if True, checkpoint_interval = 10
+        "config": None,                    # -c, external hp config file (quickstats)
+    },
+}
+
+def merge_config(defaults, overrides):
+    result = dict(defaults)
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = merge_config(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
 if __name__ == '__main__':
 
-    """Get arguments from command line."""
-    parser = ArgumentParser(description="\033[92mConfig for training.\033[0m")
-    parser.add_argument('-i', '--input_file', type=str, required=False, default='', help='Training h5 file name (default: %(default)s)')
-    parser.add_argument('-o', '--output_path', type=str, required=True, default='../output/dataset1/v1', help='Training h5 file path (default: %(default)s)')
-    parser.add_argument('-c', '--config', type=str, required=False, default=None, help='External config file (default: %(default)s)')
-    parser.add_argument('-m', '--model', type=str, required=False, default=None, help='Model name (default: %(default)s)')
-    parser.add_argument('--mask', type=float, required=False, default=None, help='Mask low noisy voxels in keV (default: %(default)s)')
-    parser.add_argument('--debug', required=False, action='store_true', help='Debug mode (default: %(default)s)')
-    parser.add_argument('-p', '--preprocess', type=str, required=False, default=None, help='Preprocessing name (default: %(default)s)')
-    parser.add_argument('-l', '--loading', type=str, required=False, default=None, help='Load model (default: %(default)s)')
-    parser.add_argument('--add_noise', required=False, action='store_true', help='Add noise (default: %(default)s)')
-    parser.add_argument('--label_scheme', type=str, required=False, default='log_ratio', help='Label scheme defined in common.py (default: %(default)s)')
-    parser.add_argument('--split_energy_position', type=str, required=False, default='', choices=['', 'le12', 'ge12', 'ge12le18', 'ge18'], help='Energy split training (default: %(default)s)')
-    parser.add_argument('--max_iter', type=int, required=False, default=1E6, help='Number of iterations (default: %(default)s)')
+    # """Get arguments from command line."""
+    # parser = ArgumentParser(description="\033[92mConfig for training.\033[0m")
+    ## parser.add_argument('-i', '--input_file', type=str, required=False, default='', help='Training h5 file name (default: %(default)s)')
+    ## parser.add_argument('-o', '--output_path', type=str, required=True, default='../output/dataset1/v1', help='Training h5 file path (default: %(default)s)')
+    ## parser.add_argument('-c', '--config', type=str, required=False, default=None, help='External config file (default: %(default)s)')
+    ## parser.add_argument('-m', '--model', type=str, required=False, default=None, help='Model name (default: %(default)s)')
+    ## parser.add_argument('--mask', type=float, required=False, default=None, help='Mask low noisy voxels in keV (default: %(default)s)')
+    ## parser.add_argument('--debug', required=False, action='store_true', help='Debug mode (default: %(default)s)')
+    ## parser.add_argument('-p', '--preprocess', type=str, required=False, default=None, help='Preprocessing name (default: %(default)s)')
+    ## parser.add_argument('-l', '--loading', type=str, required=False, default=None, help='Load model (default: %(default)s)')
+    ## parser.add_argument('--add_noise', required=False, action='store_true', help='Add noise (default: %(default)s)')
+    ## parser.add_argument('--label_scheme', type=str, required=False, default='log_ratio', help='Label scheme defined in common.py (default: %(default)s)')
+    ## parser.add_argument('--split_energy_position', type=str, required=False, default='', choices=['', 'le12', 'ge12', 'ge12le18', 'ge18'], help='Energy split training (default: %(default)s)')
+    ## parser.add_argument('--max_iter', type=int, required=False, default=1E6, help='Number of iterations (default: %(default)s)')
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
+
+    # main(args)
+    USER_CONFIG = json.load(open(sys.argv[1], 'r')) if len(sys.argv) > 1 else {}
+    CONFIG = merge_config(DEFAULT_CONFIG, USER_CONFIG)
+    args = argparse.Namespace(**{k: v for section in CONFIG.values() for k, v in section.items()})
+    # print('\033[92m[INFO] Configuration:\033[0m')
+    # print(args)
     main(args)
