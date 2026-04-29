@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # Run from BoloGAN-FCC/condor; must keep using relative path to run on different machines
-cd $(dirname ${BASH_SOURCE[0]})/../training
+# update: realtive path doesnt work on condor :(
+BOLOGAN_DIR=/afs/cern.ch/user/h/halhadda/BoloGAN-FCC
+cd ${BOLOGAN_DIR}/training
 
 # ENV SETUP; NOTE: To be ran on INFN machines; Also, LCG_105a_cuda is a temporary choice.. TODO: Update
 
