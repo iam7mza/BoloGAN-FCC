@@ -315,6 +315,17 @@ def normalise_energy(Etot_list, Egan_list):
     return Egan_list_new
 
 def plot_model_i(args, model_i):
+    # NOTE: if you are running into `CUDA_ERROR_OUT_OF_MEMORY: out of memory` error.. this block is what you should work on. 
+    import tensorflow as tf
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+                # Since this function (plot_model_i) gets called in parallel, all prcesses attempt to allocate memory on the GPU at the same time causing `CUDA_ERROR_OUT_OF_MEMORY: out of memory`
+                # this should stop tf from allocating all the memory it can and forces it to allocate memory as needed.. which hopefully should solve the problem. Note that this is not a perfect solution as it can still cause OOM if too many processes are running at the same time, but it should significantly reduce the occurrence of OOM errors.
+        except RuntimeError as e:
+            print(e)
     start_time = time.time()
     particle = args.particle
     suffix = '_load' if args.loading else ''
