@@ -145,54 +145,10 @@ def main(args):
         X_train = preprocessing(X_train, kin, name=args.preprocess, input_file=input_file)
         scale = None
 
-    if 'photon' in particle:
-        hp_config = {
-            'model': args.model if args.model else 'BNswish',
-            'dmodel': 'dense',
-            'G_size': 1,
-            'D_size': 1,
-            'optimizer': 'adam',
-            'G_lr': 1E-4,
-            'D_lr': 1E-4,
-            'G_beta1': 0.5,
-            'D_beta1': 0.5,
-            'batchsize': 1024,
-            'datasize': X_train.shape[0],
-            'dgratio': 8,
-            'latent_dim': 50,
-            'lam': 3,
-            'conditional_dim': label_kin.shape[1],
-            'generatorLayers': [50, 100, 200],
-            'nvoxels': X_train.shape[1],
-            'use_bias': True,
-            'label_scheme': label_scheme,
-        }
-        # TODO: config should be part of the input file json
-    elif 'pion' in particle or 'electron' in particle: # pion or electron
-        hp_config = {
-            'model': args.model if args.model else 'noBN',
-            'G_size': 1,
-            'D_size': 1,
-            'optimizer': 'adam',
-            'G_lr': 1E-4,
-            'D_lr': 1E-4,
-            'G_beta1': 0.5,
-            'D_beta1': 0.5,
-            'batchsize': 1024,
-            'dgratio': 5,
-            'latent_dim': 50,
-            'lam': 10,
-            'conditional_dim': label_kin.shape[1],
-            'generatorLayers': [50, 100, 200],
-            'discriminatorLayers': [800, 400, 200],
-            'nvoxels': X_train.shape[1],
-            'use_bias': True,
-            'preprocess': args.preprocess,
-            'label_scheme': label_scheme,
-        }
-    # elif 'electron' in particle: # dataset2 electron
+    # if 'photon' in particle:
     #     hp_config = {
     #         'model': args.model if args.model else 'BNswish',
+    #         'dmodel': 'dense',
     #         'G_size': 1,
     #         'D_size': 1,
     #         'optimizer': 'adam',
@@ -206,15 +162,77 @@ def main(args):
     #         'latent_dim': 50,
     #         'lam': 3,
     #         'conditional_dim': label_kin.shape[1],
-    #         'generatorLayers': [200, 400, 800],
-    #         'discriminatorLayers': [800, 400, 200],
+    #         'generatorLayers': [50, 100, 200],
     #         'nvoxels': X_train.shape[1],
     #         'use_bias': True,
     #         'label_scheme': label_scheme,
     #     }
-    if args.config:
-        from quickstats.utils.common_utils import combine_dict
-        hp_config = combine_dict(hp_config, json.load(open(args.config, 'r')))
+    #     # TODO: config should be part of the input file json
+    # elif 'pion' in particle or 'electron' in particle: # pion or electron
+    #     hp_config = {
+    #         'model': args.model if args.model else 'noBN',
+    #         'G_size': 1,
+    #         'D_size': 1,
+    #         'optimizer': 'adam',
+    #         'G_lr': 1E-4,
+    #         'D_lr': 1E-4,
+    #         'G_beta1': 0.5,
+    #         'D_beta1': 0.5,
+    #         'batchsize': 1024,
+    #         'dgratio': 5,
+    #         'latent_dim': 50,
+    #         'lam': 10,
+    #         'conditional_dim': label_kin.shape[1],
+    #         'generatorLayers': [50, 100, 200],
+    #         'discriminatorLayers': [800, 400, 200],
+    #         'nvoxels': X_train.shape[1],
+    #         'use_bias': True,
+    #         'preprocess': args.preprocess,
+    #         'label_scheme': label_scheme,
+    #     }
+    # # elif 'electron' in particle: # dataset2 electron
+    # #     hp_config = {
+    # #         'model': args.model if args.model else 'BNswish',
+    # #         'G_size': 1,
+    # #         'D_size': 1,
+    # #         'optimizer': 'adam',
+    # #         'G_lr': 1E-4,
+    # #         'D_lr': 1E-4,
+    # #         'G_beta1': 0.5,
+    # #         'D_beta1': 0.5,
+    # #         'batchsize': 1024,
+    # #         'datasize': X_train.shape[0],
+    # #         'dgratio': 8,
+    # #         'latent_dim': 50,
+    # #         'lam': 3,
+    # #         'conditional_dim': label_kin.shape[1],
+    # #         'generatorLayers': [200, 400, 800],
+    # #         'discriminatorLayers': [800, 400, 200],
+    # #         'nvoxels': X_train.shape[1],
+    # #         'use_bias': True,
+    # #         'label_scheme': label_scheme,
+    # #     }
+    # if args.config:
+    #     from quickstats.utils.common_utils import combine_dict
+    #     hp_config = combine_dict(hp_config, json.load(open(args.config, 'r')))
+
+
+    # hyper parameters are loaded rather than being hard coded.
+    # Make sure to create a json file with the hyper parameters and in the input json file provide the path with the key "hp_config"
+    hp_config = {
+        'conditional_dim': label_kin.shape[1],
+        'nvoxels': X_train.shape[1],
+        'preprocess': args.preprocess,
+        'label_scheme': label_scheme,
+    }
+
+    #TODO: remove the depricated arguments like --model and --config.
+
+    from quickstats.utils.common_utils import combine_dict
+    try:
+        hp_config = combine_dict(hp_config, json.load(open(args.hp_config, 'r')))
+    except FileNotFoundError:
+        print(f"File not found: {args.hp_config}")
 
     job_config = {
         'particle': particle+'s',
