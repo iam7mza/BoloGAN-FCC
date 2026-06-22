@@ -229,18 +229,22 @@ def main(args):
     #TODO: remove the depricated arguments like --model and --config.
 
     from quickstats.utils.common_utils import combine_dict
-    try:
-        hp_config = combine_dict(hp_config, json.load(open(args.hp_config, 'r')))
-    except FileNotFoundError:
-        print(f"File not found: {args.hp_config}")
+    
+    if args.config_type and (args.config_type == 'dict'):
+        hp_config = combine_dict(hp_config, args.hp_config)
+    else:
+        try:
+            hp_config = combine_dict(hp_config, json.load(open(args.hp_config, 'r')))
+        except FileNotFoundError:
+            print(f"File not found: {args.hp_config}")
 
     job_config = {
         'particle': particle+'s',
-        'eta_slice': '20_25', #NOTE: why is eta slice hard coded????????!!!!!!
+        'eta_slice': args.eta_slice,
         'checkpoint_interval': 1000 if not args.debug else 10,
         'output': args.output_path,
         'max_iter': 4E5 if args.loading else args.max_iter,
-        'cache': False,
+        'cache': args.cache,
         'loading': args.loading,
     }
 
@@ -275,6 +279,7 @@ DEFAULT_CONFIG = {
     "dataset": {
         "input_file": "",                  # -i
         "split_energy_position": "",       # choices: '', 'le12', 'ge12', 'ge12le18', 'ge18'
+        "eta_slice": "00_05",              # this is only used for labeling the plots.
     },
     "preprocessing": {
         "preprocess": None,                      # -p
@@ -289,6 +294,7 @@ DEFAULT_CONFIG = {
         "loading": None,                   # -l, path to checkpoint to resume from
         "debug": False,                    # if True, checkpoint_interval = 10
         "config": None,                    # -c, external hp config file (quickstats)
+        "cache": False,                    # if True, resumes from the last checkpoint if exists.
     },
 }
 

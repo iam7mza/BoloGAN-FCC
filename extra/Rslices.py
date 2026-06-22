@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
 
-PATH = "/storage-hpc/bologan/alhaddad/DataCSV/"
+PATH = "/eos/home-h/halhadda/INFN-BACKUP/DataCSV/"
 
 LAYER_MAP = {
     'SCEPCal_MainCcounts' : 0,
@@ -67,12 +67,13 @@ def plotStuff(pType, energy):
         branchmask = df['branch'] == branch
         R_min = df[branchmask]['R'].min()
         R_max = df[branchmask]['R'].max()
-        RSlices = np.linspace(R_min, R_max+1, 9)
+        # RSlices = np.linspace(R_min, R_max+1, 9)
+        RSlices = [R_min, 2259, 2439, 2799, R_max+1]  # Based on detector geometry
         fig = plt.figure(figsize=(20, 10))
         for i in range(len(RSlices)-1):
             mask = (df['R'] >= RSlices[i]) & (df['R'] < RSlices[i+1]) & branchmask
             
-            ax = plt.subplot(2, 4, i+1)
+            ax = plt.subplot(2, 2, i+1)
             
             if mask.sum() == 0:  
                 ax.text(0.5, 0.5, 'No hits', ha='center', va='center', transform=ax.transAxes)
